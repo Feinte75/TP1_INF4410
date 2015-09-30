@@ -4,14 +4,17 @@ import java.rmi.ConnectException;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
 import java.rmi.server.UnicastRemoteObject;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.HashMap;
-import java.util.Set;
 
 import ca.polymtl.inf4402.tp1.shared.ServerInterface;
 
 public class Server implements ServerInterface {
 
-	HashMap<String, byte[]> fileMap;
+	private HashMap<String, byte[]> fileMap;
+	private HashMap<String, Integer> lockMap;
+	private Integer counter = 0;
 	
 	public static void main(String[] args) {
 		Server server = new Server();
@@ -21,6 +24,7 @@ public class Server implements ServerInterface {
 	public Server() {
 		super();
 		fileMap = new HashMap<String, byte[]>(10);
+		lockMap = new HashMap<String, Integer>(10);
 	}
 
 	private void run() {
@@ -47,20 +51,20 @@ public class Server implements ServerInterface {
 
 	@Override
 	public Integer generateClientId() {
-		// TODO Auto-generated method stub
-		return null;
+		return counter++;
 	}
 
 	@Override
 	public void create(String nom) {
 		if(!fileMap.containsKey(nom)) {
 			fileMap.put(nom, null);
+			lockMap.put(nom, null);
 		}
 	}
 
 	@Override
-	public Set<String> list() {
-		return fileMap.keySet();
+	public HashMap<String, Integer> list() {		
+		return lockMap;
 	}
 
 	@Override
@@ -70,21 +74,52 @@ public class Server implements ServerInterface {
 	}
 
 	@Override
-	public byte[] get(String nom, byte[] checksum) {
-		// TODO Auto-generated method stub
-		return null;
+	public byte[] get(String nom, byte[] clientChecksum) {
+		
+		byte[] serverChecksum = null;
+		
+		try {
+			serverChecksum = MessageDigest.getInstance("md5").digest(fileMap.get(nom));
+		} catch (NoSuchAlgorithmException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		if(MessageDigest.isEqual(clientChecksum, serverChecksum))
+			return null;
+		else 
+			return fileMap.get(nom);
 	}
 
 	@Override
-	public Integer lock(String nom, Integer clientId, byte[] checksum) {
-		// TODO Auto-generated method stub
-		return null;
+	public String lock(String nom, Integer clientId, byte[] checksum) {
+		
+		if(!lockMap.containsKey(nom)) 
+			return "Le fichier n'existe pas";
+		
+		if (lockMap.get(nom) == null || lockMap.get(nom).equals(clientId)) {
+			lockMap.put(nom, clientId);
+			return nom + " bien verrouillé";
+		}
+		else {
+			return nom + " a déjà été vérouillé par Client :" + lockMap.get(nom);
+		}
+		
 	}
 
 	@Override
-	public Integer push(String nom, byte[] contenu, Integer clientid) {
-		// TODO Auto-generated method stub
-		return null;
+	public String push(String nom, byte[] contenu, Integer clientid) {
+		
+		if(lockMap.get(nom) == null || lockMap.get(nom).equals(clientid)) {
+			fileMap.put(nom, contenu);
+			return nom + " a été enregistré sur le serveur";
+		}
+		else {
+			return "L'opération a échouée";
+		}
+			
+		
+		
 	}
 
 

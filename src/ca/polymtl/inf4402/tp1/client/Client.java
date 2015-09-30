@@ -1,18 +1,24 @@
 package ca.polymtl.inf4402.tp1.client;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.rmi.AccessException;
 import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.util.HashMap;
 
 import ca.polymtl.inf4402.tp1.shared.ServerInterface;
 
 public class Client {
-	
+
 	public static void main(String[] args) {
 		String distantHostname = null;
-		
+
 		Client client = new Client(distantHostname);
 		client.run(args);
 
@@ -20,54 +26,126 @@ public class Client {
 
 	private ServerInterface localServerStub = null;
 	private ServerInterface distantServerStub = null;
+	private Integer clientId;
+	private HashMap<String, byte[]> fileMap;
 
 	public Client(String distantServerHostname) {
 		super();
 
+		fileMap = new HashMap<String, byte[]>(10);
+
 		if (System.getSecurityManager() == null) {
 			System.setSecurityManager(new SecurityManager());
 		}
-		
+
 		localServerStub = loadServerStub("127.0.0.1");
 
 		if (distantServerHostname != null) {
 			distantServerStub = loadServerStub(distantServerHostname);
 		}
-	}
 
-	private void run(String args[]) {
-		
-		if (args.length > 0) {
-			try {
-				if(args[0].equals("get")) {
-					get(args[1]);	
-				}
-				else if(args[0].equals("create")) {
-					localServerStub.create(args[1]);	
-				}
-				else if(args[0].equals("list")) {
-					System.out.println(localServerStub.list().toString());
-				}
-				else if(args[0].equals("push")) {
-					get(args[1]);	
-				}
-				else if(args[0].equals("syncLocalDir")) {
-					get(args[1]);	
-				}
-				else if(args[0].equals("lock")) {
-					get(args[1]);	
-				}
-				else {
-					System.out.println("Wrong arguments");
-				}
-			}
-			catch(RemoteException e){
-				e.printStackTrace();
-			}
-
+		try {
+			clientId = localServerStub.generateClientId();
+		} catch (RemoteException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
 		}
 	}
 
+	private void run(String args[]) {
+
+		try {
+			if (args.length == 1) {
+
+				if (args[0].equals("list")) {
+					list();
+				} else if (args[0].equals("syncLocalDir")) {
+					get(args[1]);
+				} 
+			} else if (args.length == 2) {
+				if (args[0].equals("get")) {
+					get(args[1]);
+				} else if (args[0].equals("create")) {
+					create(args[1]);
+				} else if (args[0].equals("push")) {
+					push(args[1]);
+				} else if (args[0].equals("lock")) {
+					lock(args[1]);
+				}
+			} else {
+				System.out.println("Wrong arguments");
+			}
+		} catch (RemoteException e) {
+			e.printStackTrace();
+		}
+	}
+
+	private void create(String nom) throws RemoteException {
+		localServerStub.create(nom);
+	}
+	
+	private void get(String nom) throws RemoteException {
+
+		byte[] checksum = { -1 };
+		byte[] file = null;
+		if (fileMap.get(nom) == null) {
+			file = localServerStub.get(nom, checksum);
+		} else {
+			file = localServerStub.get(nom, computeChecksum(getLocalFile(nom)));
+		}
+		
+		if(file != null)
+			writeToLocalFile(nom, file);
+	}
+
+	private void list() throws RemoteException {
+		HashMap<String, Integer> fileList = localServerStub.list();
+
+		System.out.println(fileList.toString());
+	}
+	
+	private void push(String nom) throws RemoteException { 
+		
+		 localServerStub.push(nom, getLocalFile(nom), clientId);
+	}
+	
+	private void lock(String nom) throws RemoteException {
+		byte[] file = getLocalFile(nom);
+	
+		localServerStub.lock(nom, clientId, computeChecksum(file));
+	}
+	
+	
+	private byte[] computeChecksum(byte[] file) {
+		
+		try {
+			return MessageDigest.getInstance("md5").digest(file);
+		} catch (NoSuchAlgorithmException e) {
+			e.printStackTrace();
+		}
+		return null;
+	}
+	
+	private byte[] getLocalFile(String nom) {
+		
+		byte[] file = null;
+		
+		try {
+			 file = Files.readAllBytes(Paths.get(nom));
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		
+		return file;
+	}
+	
+	private void writeToLocalFile(String nom, byte[] file) {
+		try {
+			Files.write(Paths.get(nom), file);
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
 	private ServerInterface loadServerStub(String hostname) {
 		ServerInterface stub = null;
 
@@ -84,10 +162,6 @@ public class Client {
 		}
 
 		return stub;
-	}
-	
-	private void get(String nom){
-		
 	}
 
 }
