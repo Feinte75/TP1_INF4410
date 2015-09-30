@@ -1,5 +1,8 @@
 package ca.polymtl.inf4402.tp1.client;
 
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -11,6 +14,7 @@ import java.rmi.registry.Registry;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.HashMap;
+import java.util.Scanner;
 
 import ca.polymtl.inf4402.tp1.shared.ServerInterface;
 
@@ -27,12 +31,9 @@ public class Client {
 	private ServerInterface localServerStub = null;
 	private ServerInterface distantServerStub = null;
 	private Integer clientId;
-	private HashMap<String, byte[]> fileMap;
 
 	public Client(String distantServerHostname) {
 		super();
-
-		fileMap = new HashMap<String, byte[]>(10);
 
 		if (System.getSecurityManager() == null) {
 			System.setSecurityManager(new SecurityManager());
@@ -45,8 +46,22 @@ public class Client {
 		}
 
 		try {
-			clientId = localServerStub.generateClientId();
+			if(Files.exists(Paths.get("client_id"))){
+		
+				Scanner scanner = new Scanner(new File("client_id"));
+				clientId = scanner.nextInt();
+			}else {
+				clientId = localServerStub.generateClientId();
+				FileWriter wr = new FileWriter("client_id");
+				wr.write(clientId.toString());
+				wr.close();
+			}
+			
+			System.out.println("Client Id : " + clientId);
 		} catch (RemoteException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
@@ -88,7 +103,7 @@ public class Client {
 
 		byte[] checksum = { -1 };
 		byte[] file = null;
-		if (fileMap.get(nom) == null) {
+		if (!Files.exists(Paths.get(nom))) {
 			file = localServerStub.get(nom, checksum);
 		} else {
 			file = localServerStub.get(nom, computeChecksum(getLocalFile(nom)));
@@ -106,15 +121,13 @@ public class Client {
 	
 	private void push(String nom) throws RemoteException { 
 		
-		 localServerStub.push(nom, getLocalFile(nom), clientId);
+		 System.out.println(localServerStub.push(nom, getLocalFile(nom), clientId));
 	}
 	
 	private void lock(String nom) throws RemoteException {
 		byte[] file = getLocalFile(nom);
-	
-		localServerStub.lock(nom, clientId, computeChecksum(file));
+		System.out.println(localServerStub.lock(nom, clientId, computeChecksum(file)));
 	}
-	
 	
 	private byte[] computeChecksum(byte[] file) {
 		
@@ -146,6 +159,7 @@ public class Client {
 			e.printStackTrace();
 		}
 	}
+	
 	private ServerInterface loadServerStub(String hostname) {
 		ServerInterface stub = null;
 

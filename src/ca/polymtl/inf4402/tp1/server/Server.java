@@ -14,7 +14,7 @@ public class Server implements ServerInterface {
 
 	private HashMap<String, byte[]> fileMap;
 	private HashMap<String, Integer> lockMap;
-	private Integer counter = 0;
+	private Integer counter;
 	
 	public static void main(String[] args) {
 		Server server = new Server();
@@ -25,6 +25,7 @@ public class Server implements ServerInterface {
 		super();
 		fileMap = new HashMap<String, byte[]>(10);
 		lockMap = new HashMap<String, Integer>(10);
+		counter = 0;
 	}
 
 	private void run() {
@@ -51,7 +52,8 @@ public class Server implements ServerInterface {
 
 	@Override
 	public Integer generateClientId() {
-		return counter++;
+		counter = counter + 1;
+		return counter;
 	}
 
 	@Override
@@ -91,6 +93,7 @@ public class Server implements ServerInterface {
 			return fileMap.get(nom);
 	}
 
+	// TODO change return string to byte[]
 	@Override
 	public String lock(String nom, Integer clientId, byte[] checksum) {
 		
@@ -102,9 +105,8 @@ public class Server implements ServerInterface {
 			return nom + " bien verrouillé";
 		}
 		else {
-			return nom + " a déjà été vérouillé par Client :" + lockMap.get(nom);
+			return nom + " a déjà été verouillé par Client :" + lockMap.get(nom);
 		}
-		
 	}
 
 	@Override
@@ -112,15 +114,22 @@ public class Server implements ServerInterface {
 		
 		if(lockMap.get(nom) == null || lockMap.get(nom).equals(clientid)) {
 			fileMap.put(nom, contenu);
+			lockMap.put(nom, null);
 			return nom + " a été enregistré sur le serveur";
 		}
 		else {
 			return "L'opération a échouée";
 		}
-			
-		
-		
 	}
-
+	
+	private byte[] computeChecksum(byte[] file) {
+		
+		try {
+			return MessageDigest.getInstance("md5").digest(file);
+		} catch (NoSuchAlgorithmException e) {
+			e.printStackTrace();
+		}
+		return null;
+	}
 
 }
