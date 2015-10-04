@@ -50,19 +50,16 @@ public class Client {
 		
 				Scanner scanner = new Scanner(new File("client_id"));
 				clientId = scanner.nextInt();
+				scanner.close();
 			}else {
 				clientId = localServerStub.generateClientId();
 				FileWriter wr = new FileWriter("client_id");
 				wr.write(clientId.toString());
 				wr.close();
 			}
-			
-			System.out.println("Client Id : " + clientId);
 		} catch (RemoteException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 	}
@@ -88,45 +85,66 @@ public class Client {
 					lock(args[1]);
 				}
 			} else {
-				System.out.println("Wrong arguments");
+				System.out.println("Les commandes disponibles sont :\n" +
+						"list\n" +
+						"syncLocalDir\n" +
+						"get <file name>\n" +
+						"create <file name>\n" +
+						"push <file name>\n" +
+						"lock <file name>\n");
 			}
 		} catch (RemoteException e) {
 			e.printStackTrace();
 		}
 	}
 
-	private void create(String nom) throws RemoteException {
-		localServerStub.create(nom);
+	private void create(String fileName) throws RemoteException {
+		localServerStub.create(fileName);
 	}
 	
-	private void get(String nom) throws RemoteException {
+	private void get(String fileName) throws RemoteException {
 
 		byte[] checksum = { -1 };
 		byte[] file = null;
-		if (!Files.exists(Paths.get(nom))) {
-			file = localServerStub.get(nom, checksum);
+		
+		if (!Files.exists(Paths.get(fileName))) {
+			file = localServerStub.get(fileName, checksum);
 		} else {
-			file = localServerStub.get(nom, computeChecksum(getLocalFile(nom)));
+			file = localServerStub.get(fileName, computeChecksum(getLocalFile(fileName)));
 		}
 		
-		if(file != null)
-			writeToLocalFile(nom, file);
+		if(file != null){
+			writeToLocalFile(fileName, file);
+			System.out.println("Fichier bien téléchargé ou mis à jour");
+		}
+		else {
+			System.out.println("Le fichier local est à jour");
+		}
+			
 	}
 
 	private void list() throws RemoteException {
 		HashMap<String, Integer> fileList = localServerStub.list();
-
+		
+		System.out.println("Fichiers présent sur le serveur : ");
 		System.out.println(fileList.toString());
 	}
 	
-	private void push(String nom) throws RemoteException { 
+	private void push(String fileName) throws RemoteException { 
 		
-		 System.out.println(localServerStub.push(nom, getLocalFile(nom), clientId));
+		 System.out.println(localServerStub.push(fileName, getLocalFile(fileName), clientId));
 	}
 	
-	private void lock(String nom) throws RemoteException {
-		byte[] file = getLocalFile(nom);
-		System.out.println(localServerStub.lock(nom, clientId, computeChecksum(file)));
+	private void lock(String fileName) throws RemoteException {
+		byte[] file = getLocalFile(fileName);
+		
+		file = localServerStub.lock(fileName, clientId, computeChecksum(file));
+		if(file == null){
+			System.out.println("L'opération a échoué");
+		}
+		else {
+			writeToLocalFile(fileName, file);
+		}
 	}
 	
 	private byte[] computeChecksum(byte[] file) {
@@ -136,15 +154,16 @@ public class Client {
 		} catch (NoSuchAlgorithmException e) {
 			e.printStackTrace();
 		}
+		
 		return null;
 	}
 	
-	private byte[] getLocalFile(String nom) {
+	private byte[] getLocalFile(String fileName) {
 		
 		byte[] file = null;
 		
 		try {
-			 file = Files.readAllBytes(Paths.get(nom));
+			 file = Files.readAllBytes(Paths.get(fileName));
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
@@ -152,9 +171,9 @@ public class Client {
 		return file;
 	}
 	
-	private void writeToLocalFile(String nom, byte[] file) {
+	private void writeToLocalFile(String fileName, byte[] file) {
 		try {
-			Files.write(Paths.get(nom), file);
+			Files.write(Paths.get(fileName), file);
 		} catch (IOException e) {
 			e.printStackTrace();
 		}

@@ -57,10 +57,10 @@ public class Server implements ServerInterface {
 	}
 
 	@Override
-	public void create(String nom) {
-		if(!fileMap.containsKey(nom)) {
-			fileMap.put(nom, null);
-			lockMap.put(nom, null);
+	public void create(String fileName) {
+		if(!fileMap.containsKey(fileName)) {
+			fileMap.put(fileName, null);
+			lockMap.put(fileName, null);
 		}
 	}
 
@@ -76,46 +76,40 @@ public class Server implements ServerInterface {
 	}
 
 	@Override
-	public byte[] get(String nom, byte[] clientChecksum) {
+	public byte[] get(String fileName, byte[] clientChecksum) {
 		
 		byte[] serverChecksum = null;
 		
 		try {
-			serverChecksum = MessageDigest.getInstance("md5").digest(fileMap.get(nom));
+			serverChecksum = MessageDigest.getInstance("md5").digest(fileMap.get(fileName));
 		} catch (NoSuchAlgorithmException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 		
 		if(MessageDigest.isEqual(clientChecksum, serverChecksum))
 			return null;
 		else 
-			return fileMap.get(nom);
-	}
-
-	// TODO change return string to byte[]
-	@Override
-	public String lock(String nom, Integer clientId, byte[] checksum) {
-		
-		if(!lockMap.containsKey(nom)) 
-			return "Le fichier n'existe pas";
-		
-		if (lockMap.get(nom) == null || lockMap.get(nom).equals(clientId)) {
-			lockMap.put(nom, clientId);
-			return nom + " bien verrouillé";
-		}
-		else {
-			return nom + " a déjà été verouillé par Client :" + lockMap.get(nom);
-		}
+			return fileMap.get(fileName);
 	}
 
 	@Override
-	public String push(String nom, byte[] contenu, Integer clientid) {
+	public byte[] lock(String fileName, Integer clientId, byte[] checksum) {
 		
-		if(lockMap.get(nom) == null || lockMap.get(nom).equals(clientid)) {
-			fileMap.put(nom, contenu);
-			lockMap.put(nom, null);
-			return nom + " a été enregistré sur le serveur";
+		if (lockMap.get(fileName) == null || lockMap.get(fileName).equals(clientId)) {
+			lockMap.put(fileName, clientId);
+			return fileMap.get(fileName);
+		}
+		
+		return null;
+	}
+
+	@Override
+	public String push(String fileName, byte[] contenu, Integer clientid) {
+		
+		if(lockMap.get(fileName) == null || lockMap.get(fileName).equals(clientid)) {
+			fileMap.put(fileName, contenu);
+			lockMap.put(fileName, null);
+			return fileName + " a été enregistré sur le serveur";
 		}
 		else {
 			return "L'opération a échouée";
