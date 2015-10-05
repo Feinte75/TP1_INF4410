@@ -1,6 +1,7 @@
 package ca.polymtl.inf4402.tp1.server;
 
 import java.rmi.ConnectException;
+import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
 import java.rmi.server.UnicastRemoteObject;
@@ -8,6 +9,7 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.HashMap;
 
+import ca.polymtl.inf4402.tp1.shared.CustomException;
 import ca.polymtl.inf4402.tp1.shared.ServerInterface;
 
 public class Server implements ServerInterface {
@@ -57,10 +59,14 @@ public class Server implements ServerInterface {
 	}
 
 	@Override
-	public void create(String fileName) {
+	public String create(String fileName) {
 		if(!fileMap.containsKey(fileName)) {
-			fileMap.put(fileName, null);
-			lockMap.put(fileName, null);
+			fileMap.put(fileName, new byte[1]);
+			lockMap.put(fileName, 0);
+			return fileName + " ajouté";
+		}
+		else {
+			return fileName + " déjà présent sur le serveur";
 		}
 	}
 
@@ -93,26 +99,29 @@ public class Server implements ServerInterface {
 	}
 
 	@Override
-	public byte[] lock(String fileName, Integer clientId, byte[] checksum) {
+	public byte[] lock(String fileName, Integer clientId, byte[] checksum) throws CustomException {
 		
-		if (lockMap.get(fileName) == null || lockMap.get(fileName).equals(clientId)) {
-			lockMap.put(fileName, clientId);
-			return fileMap.get(fileName);
+		if (!lockMap.containsKey(fileName)) {
+			throw new CustomException("Le fichier "+fileName+ " n'existe pas sur le serveur");		
 		}
+		else if(!lockMap.get(fileName).equals(0) && !lockMap.get(fileName).equals(clientId)) {
+			throw new CustomException(fileName + " est déjà verrouillé par "+ lockMap.get(fileName));	
+		}	
 		
-		return null;
+		lockMap.put(fileName, clientId);
+		return fileMap.get(fileName);
 	}
 
 	@Override
 	public String push(String fileName, byte[] contenu, Integer clientid) {
 		
-		if(lockMap.get(fileName) == null || lockMap.get(fileName).equals(clientid)) {
+		if(lockMap.get(fileName) != null && lockMap.get(fileName).equals(clientid)) {
 			fileMap.put(fileName, contenu);
-			lockMap.put(fileName, null);
+			lockMap.put(fileName, 0);
 			return fileName + " a été enregistré sur le serveur";
 		}
 		else {
-			return "L'opération a échouée";
+			return "L'opération a échouée : veuillez d'abord verrouiller le fichier";
 		}
 	}
 	

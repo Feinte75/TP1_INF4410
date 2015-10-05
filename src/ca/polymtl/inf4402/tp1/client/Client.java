@@ -1,7 +1,6 @@
 package ca.polymtl.inf4402.tp1.client;
 
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -16,6 +15,7 @@ import java.security.NoSuchAlgorithmException;
 import java.util.HashMap;
 import java.util.Scanner;
 
+import ca.polymtl.inf4402.tp1.shared.CustomException;
 import ca.polymtl.inf4402.tp1.shared.ServerInterface;
 
 public class Client {
@@ -72,7 +72,7 @@ public class Client {
 				if (args[0].equals("list")) {
 					list();
 				} else if (args[0].equals("syncLocalDir")) {
-					get(args[1]);
+					syncLocalDir();
 				} 
 			} else if (args.length == 2) {
 				if (args[0].equals("get")) {
@@ -99,7 +99,7 @@ public class Client {
 	}
 
 	private void create(String fileName) throws RemoteException {
-		localServerStub.create(fileName);
+		System.out.println(localServerStub.create(fileName));
 	}
 	
 	private void get(String fileName) throws RemoteException {
@@ -115,10 +115,10 @@ public class Client {
 		
 		if(file != null){
 			writeToLocalFile(fileName, file);
-			System.out.println("Fichier bien téléchargé ou mis à jour");
+			System.out.println("Fichier "+ fileName + " a bien été téléchargé ou mis à jour");
 		}
 		else {
-			System.out.println("Le fichier local est à jour");
+			System.out.println("Fichier "+ fileName + " est à jour");
 		}
 			
 	}
@@ -126,8 +126,16 @@ public class Client {
 	private void list() throws RemoteException {
 		HashMap<String, Integer> fileList = localServerStub.list();
 		
-		System.out.println("Fichiers présent sur le serveur : ");
-		System.out.println(fileList.toString());
+		for(String fileName : fileList.keySet()){
+			System.out.print(fileName + " : ");
+			if(fileList.get(fileName) == null) {
+				System.out.println("Non verrouillé");
+			}
+			else{
+				System.out.println("Verrouillé par : " + fileList.get(fileName) );
+			}
+		}
+		System.out.println( fileList.size() + " fichier(s)");
 	}
 	
 	private void push(String fileName) throws RemoteException { 
@@ -138,12 +146,21 @@ public class Client {
 	private void lock(String fileName) throws RemoteException {
 		byte[] file = getLocalFile(fileName);
 		
-		file = localServerStub.lock(fileName, clientId, computeChecksum(file));
-		if(file == null){
-			System.out.println("L'opération a échoué");
-		}
-		else {
+		try {
+			file = localServerStub.lock(fileName, clientId, computeChecksum(file));
 			writeToLocalFile(fileName, file);
+			System.out.println("Fichier "+fileName+ " à jour et verrouillé sur le serveur");
+		}
+		catch(CustomException e) {
+			System.out.println(e.getCustomMessage());	
+		} 
+	}
+	
+	private void syncLocalDir() throws RemoteException {
+		HashMap<String, Integer> fileList = localServerStub.list();
+		
+		for(String fileName : fileList.keySet()){
+			get(fileName);
 		}
 	}
 	

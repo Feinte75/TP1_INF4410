@@ -17,9 +17,10 @@ public interface ServerInterface extends Remote {
 	/**
 	 * Create a file on the server
 	 * @param fileName Name of the file to create
+	 * @return TODO
 	 * @throws RemoteException
 	 */
-	void create(String fileName) throws RemoteException;
+	String create(String fileName) throws RemoteException;
 	
 	/**
 	 * Get a list of all file names stored on the server 
@@ -50,9 +51,9 @@ public interface ServerInterface extends Remote {
 	 * @param clientId
 	 * @param checksum
 	 * @return
-	 * @throws RemoteException
+	 * @throws CustomException
 	 */
-	byte[] lock(String fileName, Integer clientId, byte[] checksum) throws RemoteException;
+	byte[] lock(String fileName, Integer clientId, byte[] checksum) throws RemoteException, CustomException;
 	
 	/**
 	 * 
