@@ -52,19 +52,22 @@ public class Server implements ServerInterface {
 		}
 	}
 
-	/*
-	 * @return The id of the requesting client
+	/**
+	 * 
+	 * Generate a new id for client
 	 */
 	@Override
-	public Integer generateClientId() {
+	public synchronized Integer generateClientId() {
 		counter = counter + 1;
 		return counter;
 	}
-	/*
-	 *  Create a file on the server if it does not exist
+	
+	/**
+	 * 
+	 * Create a file on the server if it does not exist
 	 */
 	@Override
-	public String create(String fileName) {
+	public synchronized String create(String fileName) {
 		if(!fileMap.containsKey(fileName)) {
 			fileMap.put(fileName, new byte[1]);
 			lockMap.put(fileName, 0);
@@ -75,30 +78,31 @@ public class Server implements ServerInterface {
 		}
 	}
 	
-	/*
+	/**
 	 * 
-	 * @return lockMap Hashmap containing all files names and the id of the client who lock it 
+	 * Return the Hashmap containing all files names and the id of the client who locked it 
 	 */
 	@Override
-	public HashMap<String, Integer> list() {		
+	public synchronized HashMap<String, Integer> list() {		
 		return lockMap;
 	}
 
-	/*
+	/**
 	 * 
-	 * @return lockMap Hashmap containing all files names and their contents  
+	 * Function not used, the client first get the file list then uses Get on all files 
 	 */
 	@Override
-	public HashMap<String, byte[]> syncLocalDir() {
+	public synchronized HashMap<String, byte[]> syncLocalDir() {
 		// TODO Auto-generated method stub
 		return null;
 	}
 
-	/*
+	/**
+	 * 
 	 * Return the content of the file fileName if the clientChecksum is different 
 	 */
 	@Override
-	public byte[] get(String fileName, byte[] clientChecksum) {
+	public synchronized byte[] get(String fileName, byte[] clientChecksum) {
 		
 		byte[] serverChecksum = null;
 		
@@ -114,12 +118,12 @@ public class Server implements ServerInterface {
 			return fileMap.get(fileName);
 	}
 
-	/*
+	/**
 	 * 
-	 * Lock the file if the file is not lock and return the version if checksums are differents
+	 * Lock the file if the file is not lock and return the version if checksums are different
 	 */
 	@Override
-	public byte[] lock(String fileName, Integer clientId, byte[] checksum) throws CustomException {
+	public synchronized byte[] lock(String fileName, Integer clientId, byte[] checksum) throws CustomException {
 		
 		if (!lockMap.containsKey(fileName)) {
 			throw new CustomException("Le fichier "+fileName+ " n'existe pas sur le serveur");		
@@ -132,12 +136,12 @@ public class Server implements ServerInterface {
 		return fileMap.get(fileName);
 	}
 
-	/*
+	/**
 	 * 
-	 * If the file exists on the server, push a new version if the file is lock
+	 * If the file exists on the server and it is locked by the requesting client, push a new version
 	 */
 	@Override
-	public String push(String fileName, byte[] contenu, Integer clientid) {
+	public synchronized String push(String fileName, byte[] contenu, Integer clientid) {
 		
 		if(lockMap.get(fileName) != null && lockMap.get(fileName).equals(clientid)) {
 			fileMap.put(fileName, contenu);
@@ -148,17 +152,4 @@ public class Server implements ServerInterface {
 			return "L'opération a échouée : veuillez d'abord verrouiller le fichier";
 		}
 	}
-	/*
-	 * return the checksum of a file 
-	 */
-	private byte[] computeChecksum(byte[] file) {
-		
-		try {
-			return MessageDigest.getInstance("md5").digest(file);
-		} catch (NoSuchAlgorithmException e) {
-			e.printStackTrace();
-		}
-		return null;
-	}
-
 }

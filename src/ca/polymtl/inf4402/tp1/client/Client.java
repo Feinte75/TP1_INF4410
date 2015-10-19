@@ -20,6 +20,9 @@ import ca.polymtl.inf4402.tp1.shared.ServerInterface;
 
 public class Client {
 
+	private ServerInterface serverStub = null;
+	private Integer clientId;
+	
 	public static void main(String[] args) {
 		String distantHostname = null;
 
@@ -28,10 +31,6 @@ public class Client {
 
 	}
 
-	private ServerInterface localServerStub = null;
-	private ServerInterface distantServerStub = null;
-	private Integer clientId;
-
 	public Client(String distantServerHostname) {
 		super();
 
@@ -39,20 +38,22 @@ public class Client {
 			System.setSecurityManager(new SecurityManager());
 		}
 
-		localServerStub = loadServerStub("127.0.0.1");
+		serverStub = loadServerStub("127.0.0.1");
 
 		if (distantServerHostname != null) {
-			distantServerStub = loadServerStub(distantServerHostname);
+			serverStub = loadServerStub(distantServerHostname);
 		}
 
 		try {
+			// If no client_id file present, request client_id to server and write it to file
 			if(Files.exists(Paths.get("client_id"))){
 		
 				Scanner scanner = new Scanner(new File("client_id"));
 				clientId = scanner.nextInt();
 				scanner.close();
 			}else {
-				clientId = localServerStub.generateClientId();
+				clientId = serverStub.generateClientId();
+				
 				FileWriter wr = new FileWriter("client_id");
 				wr.write(clientId.toString());
 				wr.close();
@@ -98,14 +99,17 @@ public class Client {
 		}
 	}
 
-	/*
-	 * create a new file on the server
+	/**
+	 * 
+	 * Create a new file on the server
 	 */
 	private void create(String fileName) throws RemoteException {
-		System.out.println(localServerStub.create(fileName));
+		System.out.println(serverStub.create(fileName));
 	}
-	/*
-	 * Get the version of the file fileName 
+	
+	/**
+	 * 
+	 * Get the last version of the file fileName 
 	 */
 	private void get(String fileName) throws RemoteException {
 
@@ -113,9 +117,9 @@ public class Client {
 		byte[] file = null;
 		
 		if (!Files.exists(Paths.get(fileName))) {
-			file = localServerStub.get(fileName, checksum);
+			file = serverStub.get(fileName, checksum);
 		} else {
-			file = localServerStub.get(fileName, computeChecksum(getLocalFile(fileName)));
+			file = serverStub.get(fileName, computeChecksum(getLocalFile(fileName)));
 		}
 		
 		if(file != null){
@@ -128,11 +132,12 @@ public class Client {
 			
 	}
 
-	/*
+	/**
+	 * 
 	 * Print the list of the files on the server , and their lock status
 	 */
 	private void list() throws RemoteException {
-		HashMap<String, Integer> fileList = localServerStub.list();
+		HashMap<String, Integer> fileList = serverStub.list();
 		
 		for(String fileName : fileList.keySet()){
 			System.out.print(fileName + " : ");
@@ -146,22 +151,24 @@ public class Client {
 		System.out.println( fileList.size() + " fichier(s)");
 	}
 	
-	/*
-	 * push a new version of fileName on the server
+	/**
+	 * 
+	 * Push a new version of fileName on the server
 	 */
 	private void push(String fileName) throws RemoteException { 
 		
-		 System.out.println(localServerStub.push(fileName, getLocalFile(fileName), clientId));
+		 System.out.println(serverStub.push(fileName, getLocalFile(fileName), clientId));
 	}
 	
-	/*
+	/**
+	 * 
 	 * Lock a file on the server and print the result
 	 */
 	private void lock(String fileName) throws RemoteException {
 		byte[] file = getLocalFile(fileName);
 		
 		try {
-			file = localServerStub.lock(fileName, clientId, computeChecksum(file));
+			file = serverStub.lock(fileName, clientId, computeChecksum(file));
 			writeToLocalFile(fileName, file);
 			System.out.println("Fichier "+fileName+ " à jour et verrouillé sur le serveur");
 		}
@@ -170,18 +177,22 @@ public class Client {
 		} 
 	}
 	
-	/*
+	/**
+	 * 
 	 * Synchronize the local directory with the server
 	 */
 	private void syncLocalDir() throws RemoteException {
-		HashMap<String, Integer> fileList = localServerStub.list();
+		HashMap<String, Integer> fileList = serverStub.list();
 		
 		for(String fileName : fileList.keySet()){
 			get(fileName);
 		}
 	}
 	
-	/*
+	/* Utility functions */
+	
+	/**
+	 * 
 	 * Compute the checksum of the file
 	 */
 	private byte[] computeChecksum(byte[] file) {
@@ -195,8 +206,9 @@ public class Client {
 		return null;
 	}
 	
-	/*
-	 * get the content of the local file 
+	/**
+	 * 
+	 * Get the content of the local file 
 	 */
 	private byte[] getLocalFile(String fileName) {
 		
@@ -211,8 +223,9 @@ public class Client {
 		return file;
 	}
 	
-	/*
-	 * Modie a locale file
+	/**
+	 * 
+	 * Modify a local file
 	 */
 	private void writeToLocalFile(String fileName, byte[] file) {
 		try {
