@@ -30,7 +30,7 @@ public interface ServerInterface extends Remote {
 	HashMap<String, Integer> list() throws RemoteException;
 
 	/**
-	 * 
+	 * Synchronize the local directory with the server
 	 * @return
 	 * @throws RemoteException
 	 */
@@ -38,6 +38,7 @@ public interface ServerInterface extends Remote {
 	
 	/**
 	 * 
+	 * Get the last version of fileName
 	 * @param fileName
 	 * @param checksum
 	 * @return
@@ -47,6 +48,7 @@ public interface ServerInterface extends Remote {
 	
 	/**
 	 * 
+	 * Lock the file fileName on the server
 	 * @param fileName
 	 * @param clientId
 	 * @param checksum
@@ -57,6 +59,7 @@ public interface ServerInterface extends Remote {
 	
 	/**
 	 * 
+	 * Send a new version of the file fileName on the Server
 	 * @param fileName
 	 * @param contenu
 	 * @param clientid

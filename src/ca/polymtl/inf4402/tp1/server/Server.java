@@ -14,9 +14,9 @@ import ca.polymtl.inf4402.tp1.shared.ServerInterface;
 
 public class Server implements ServerInterface {
 
-	private HashMap<String, byte[]> fileMap;
-	private HashMap<String, Integer> lockMap;
-	private Integer counter;
+	private HashMap<String, byte[]> fileMap;//Hashmap of the name of the files and their contents
+	private HashMap<String, Integer> lockMap;//Hashmap of the name of the files and the id of the client who lock it (Default 0)
+	private Integer counter;//to provide new id
 	
 	public static void main(String[] args) {
 		Server server = new Server();
@@ -52,12 +52,17 @@ public class Server implements ServerInterface {
 		}
 	}
 
+	/*
+	 * @return The id of the requesting client
+	 */
 	@Override
 	public Integer generateClientId() {
 		counter = counter + 1;
 		return counter;
 	}
-
+	/*
+	 *  Create a file on the server if it does not exist
+	 */
 	@Override
 	public String create(String fileName) {
 		if(!fileMap.containsKey(fileName)) {
@@ -69,18 +74,29 @@ public class Server implements ServerInterface {
 			return fileName + " déjà présent sur le serveur";
 		}
 	}
-
+	
+	/*
+	 * 
+	 * @return lockMap Hashmap containing all files names and the id of the client who lock it 
+	 */
 	@Override
 	public HashMap<String, Integer> list() {		
 		return lockMap;
 	}
 
+	/*
+	 * 
+	 * @return lockMap Hashmap containing all files names and their contents  
+	 */
 	@Override
 	public HashMap<String, byte[]> syncLocalDir() {
 		// TODO Auto-generated method stub
 		return null;
 	}
 
+	/*
+	 * Return the content of the file fileName if the clientChecksum is different 
+	 */
 	@Override
 	public byte[] get(String fileName, byte[] clientChecksum) {
 		
@@ -98,6 +114,10 @@ public class Server implements ServerInterface {
 			return fileMap.get(fileName);
 	}
 
+	/*
+	 * 
+	 * Lock the file if the file is not lock and return the version if checksums are differents
+	 */
 	@Override
 	public byte[] lock(String fileName, Integer clientId, byte[] checksum) throws CustomException {
 		
@@ -112,6 +132,10 @@ public class Server implements ServerInterface {
 		return fileMap.get(fileName);
 	}
 
+	/*
+	 * 
+	 * If the file exists on the server, push a new version if the file is lock
+	 */
 	@Override
 	public String push(String fileName, byte[] contenu, Integer clientid) {
 		
@@ -124,7 +148,9 @@ public class Server implements ServerInterface {
 			return "L'opération a échouée : veuillez d'abord verrouiller le fichier";
 		}
 	}
-	
+	/*
+	 * return the checksum of a file 
+	 */
 	private byte[] computeChecksum(byte[] file) {
 		
 		try {

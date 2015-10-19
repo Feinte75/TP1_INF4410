@@ -98,10 +98,15 @@ public class Client {
 		}
 	}
 
+	/*
+	 * create a new file on the server
+	 */
 	private void create(String fileName) throws RemoteException {
 		System.out.println(localServerStub.create(fileName));
 	}
-	
+	/*
+	 * Get the version of the file fileName 
+	 */
 	private void get(String fileName) throws RemoteException {
 
 		byte[] checksum = { -1 };
@@ -123,6 +128,9 @@ public class Client {
 			
 	}
 
+	/*
+	 * Print the list of the files on the server , and their lock status
+	 */
 	private void list() throws RemoteException {
 		HashMap<String, Integer> fileList = localServerStub.list();
 		
@@ -138,11 +146,17 @@ public class Client {
 		System.out.println( fileList.size() + " fichier(s)");
 	}
 	
+	/*
+	 * push a new version of fileName on the server
+	 */
 	private void push(String fileName) throws RemoteException { 
 		
 		 System.out.println(localServerStub.push(fileName, getLocalFile(fileName), clientId));
 	}
 	
+	/*
+	 * Lock a file on the server and print the result
+	 */
 	private void lock(String fileName) throws RemoteException {
 		byte[] file = getLocalFile(fileName);
 		
@@ -156,6 +170,9 @@ public class Client {
 		} 
 	}
 	
+	/*
+	 * Synchronize the local directory with the server
+	 */
 	private void syncLocalDir() throws RemoteException {
 		HashMap<String, Integer> fileList = localServerStub.list();
 		
@@ -164,6 +181,9 @@ public class Client {
 		}
 	}
 	
+	/*
+	 * Compute the checksum of the file
+	 */
 	private byte[] computeChecksum(byte[] file) {
 		
 		try {
@@ -175,6 +195,9 @@ public class Client {
 		return null;
 	}
 	
+	/*
+	 * get the content of the local file 
+	 */
 	private byte[] getLocalFile(String fileName) {
 		
 		byte[] file = null;
@@ -188,6 +211,9 @@ public class Client {
 		return file;
 	}
 	
+	/*
+	 * Modie a locale file
+	 */
 	private void writeToLocalFile(String fileName, byte[] file) {
 		try {
 			Files.write(Paths.get(fileName), file);
